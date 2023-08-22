@@ -1,0 +1,26 @@
+{
+  "development": {
+    "username": "root",
+    "password": "cmsdev@root",
+    "database": "test_tang",
+    "host": "203.151.166.108",
+    "port":"3311",
+    "dialect": "mariadb"
+  },
+  "test": {
+    "username": "root",
+    "password": "cmsdev@root",
+    "database": "test_tang",
+    "host": "203.151.166.108",
+    "port":"3311",
+    "dialect": "mariadb"
+  },
+  "production": {
+    "username": "root",
+    "password": "cmsdev@root",
+    "database": "test_tang",
+    "host": "203.151.166.108",
+    "port":"3311",
+    "dialect": "mariadb"
+  }
+}
