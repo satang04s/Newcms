@@ -2,25 +2,25 @@
   "development": {
     "username": "root",
     "password": "cmsdev@root",
-    "database": "test_tang",
+    "database": "test_tle",
     "host": "203.151.166.108",
     "port":"3311",
-    "dialect": "mariadb"
+    "dialect": "mysql"
   },
   "test": {
     "username": "root",
     "password": "cmsdev@root",
-    "database": "test_tang",
+    "database": "test_tle",
     "host": "203.151.166.108",
     "port":"3311",
-    "dialect": "mariadb"
+    "dialect": "mysql"
   },
   "production": {
     "username": "root",
     "password": "cmsdev@root",
-    "database": "test_tang",
+    "database": "test_tle",
     "host": "203.151.166.108",
     "port":"3311",
-    "dialect": "mariadb"
+    "dialect": "mysql"
   }
 }
