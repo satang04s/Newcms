@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('ali_bmbonus', {
+  const ali_bmbonus =  sequelize.define('ali_bmbonus', {
     cid: {
       autoIncrement: true,
       type: DataTypes.INTEGER,
@@ -229,4 +229,12 @@ module.exports = function(sequelize, DataTypes) {
       },
     ]
   });
+  ali_bmbonus.associate = function (models) {
+    ali_bmbonus.hasOne(models.ali_member, {
+      as: "member",
+      foreignKey: "mcode",
+      sourceKey: "mcode",
+    })
+  }
+  return ali_bmbonus
 };

@@ -3,11 +3,13 @@ module.exports = function(sequelize, DataTypes) {
   return sequelize.define('ali_dpv', {
     rcode: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      allowNull: false,
+      primaryKey: true
     },
     mcode: {
       type: DataTypes.STRING(255),
-      allowNull: false
+      allowNull: false,
+      primaryKey: true
     },
     total_pv: {
       type: DataTypes.DECIMAL(15,2),
