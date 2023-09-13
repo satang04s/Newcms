@@ -2,7 +2,7 @@ const models = require("../models/index")
 const Sequelize = require("sequelize")
 const Op = Sequelize.Op
 const moment = require("moment")
-const { getSaleMaintain } = require("./service/sale-maintain")
+const {getSaleMaintain} = require("./service/sale-maintain")
 
 const FACTOR = {
   1: 0.1,
@@ -37,20 +37,13 @@ exports.calMatching = async (req, res, next) => {
       },
     ],
     group: ["mcode"],
+    raw: true,
+    nest: true,
   })
 
-  const salesMaintain = await getSaleMaintain(endDate);
+  const salesMaintain = await getSaleMaintain(endDate)
 
   const startTime = moment()
-
-  // const salesMaintain = {}
-  // let countMaintain = []
-  // result.map((item) => {
-  //   if (item.dataValues.total_pv >= 1000) {
-  //     countMaintain.push(item.mcode)
-  //     salesMaintain[item.dataValues.mcode] = item.dataValues.total_pv
-  //   }
-  // })
 
   const dataPool = {
     salesMaintain: salesMaintain,
@@ -62,19 +55,21 @@ exports.calMatching = async (req, res, next) => {
 
   const allKeys = Object.keys(result)
   for (let x of allKeys) {
-    const item = result[x].dataValues
+    const item = result[x]
     dataPool.dpv.push({
-      rcode : item.rcode,
-      mcode : item.mcode,
-      total_pv: item.total_pv
+      rcode: item.rcode,
+      mcode: item.mcode,
+      total_pv: item.total_pv,
     })
     let selectMember = dataPool.members[x]
     if (selectMember === undefined) {
       const memberQuery = await models.ali_member.findOne({
         where: {mcode: item.mcode},
+        raw: true,
+        nest: true,
       })
-      dataPool.members[x] = memberQuery.dataValues
-      selectMember = memberQuery.dataValues
+      dataPool.members[x] = memberQuery
+      selectMember = memberQuery
     }
     await getPartSp(
       ro,
@@ -85,7 +80,7 @@ exports.calMatching = async (req, res, next) => {
       item.total_pv,
       1,
       dataPool,
-      1,
+      1
     )
   }
 
@@ -122,19 +117,18 @@ exports.calMatching = async (req, res, next) => {
     })
   }
 
-  await createResult(ro, dataPool)
+  await createResult(dataPool)
 
   const endTime = moment()
   const duration = endTime.diff(startTime, "seconds")
   console.log("duration >>>>> ", duration)
-  // console.log('dataPool.dpv', dataPool.dpv)
+
   res.status(200).json({
     dataPool: dataPool,
-    // result: result,
   })
 }
 
-const createResult = async (ro, dataPool) => {
+const createResult = async (dataPool) => {
   await models.ali_dpv.bulkCreate(dataPool.dpv)
   await models.ali_dc.bulkCreate(dataPool.dc)
   await models.ali_dmbonus.bulkCreate(dataPool.dmBonus)
@@ -149,7 +143,7 @@ const getPartSp = async (
   total_pv,
   gen = 1,
   dataPool,
-  level = 1,
+  level = 1
 ) => {
   if (member.sp_code != "" && level <= 5) {
     const sponsorCode = member.sp_code
@@ -157,9 +151,11 @@ const getPartSp = async (
     if (dataPool.members[sponsorCode] === undefined) {
       const memberQuery = await models.ali_member.findOne({
         where: {mcode: sponsorCode},
+        raw: true,
+        nest: true,
       })
-      dataPool.members[sponsorCode] = memberQuery.dataValues
-      selectMember = memberQuery.dataValues
+      dataPool.members[sponsorCode] = memberQuery
+      selectMember = memberQuery
     }
     const salesMaintain = dataPool.salesMaintain.includes(selectMember.mcode)
 
@@ -174,7 +170,7 @@ const getPartSp = async (
       dataPool.dc.push({
         rcode: ro,
         mcode: source.mcode,
-        name_t: source.member.dataValues.name_t,
+        name_t: source.member.name_t,
         mposi: selectMember.pos_cur,
         upa_code: selectMember.mcode,
         upa_name: selectMember.name_t,
