@@ -2,6 +2,7 @@ const models = require("../models/index")
 const Sequelize = require("sequelize")
 const Op = Sequelize.Op
 const moment = require("moment")
+const { getSaleMaintain } = require("./service/sale-maintain")
 
 const FACTOR = {
   1: 0.1,
@@ -12,7 +13,7 @@ const FACTOR = {
 }
 
 exports.calMatching = async (req, res, next) => {
-  const ro = 81
+  const ro = 82
   const startDate = "2023-06-01"
   const endDate = "2023-06-30"
 
@@ -24,8 +25,8 @@ exports.calMatching = async (req, res, next) => {
       [Sequelize.fn("SUM", Sequelize.col("total")), "total_pv"],
     ],
     where: {
-      fdate: {[Op.gte]: "2023-06-01"},
-      tdate: {[Op.lte]: "2023-06-30"},
+      fdate: {[Op.gte]: startDate},
+      tdate: {[Op.lte]: endDate},
       total: {[Op.gt]: 0},
     },
     include: [
@@ -38,34 +39,23 @@ exports.calMatching = async (req, res, next) => {
     group: ["mcode"],
   })
 
+  const salesMaintain = await getSaleMaintain(endDate);
+
   const startTime = moment()
 
-  // const resultSQL = await sequelize.query(
-  //   `
-  //   SELECT :ro as rcode ,am.name_t,ali_bmbonus.mcode,am.sp_code ,am.pos_cur, SUM(ali_bmbonus.total) AS total_pv FROM ali_bmbonus AS ali_bmbonus
-  //   LEFT JOIN ali_member as am on am.mcode = ali_bmbonus.mcode
-  //   WHERE ali_bmbonus.fdate >= :startDate AND ali_bmbonus.tdate <= :endDate
-  //   AND ali_bmbonus.total > 0 GROUP BY mcode;
-  //   `,
-  //   {
-  //     replacements: {ro , startDate, endDate},
-  //     type: sequelize.QueryTypes.SELECT,
+  // const salesMaintain = {}
+  // let countMaintain = []
+  // result.map((item) => {
+  //   if (item.dataValues.total_pv >= 1000) {
+  //     countMaintain.push(item.mcode)
+  //     salesMaintain[item.dataValues.mcode] = item.dataValues.total_pv
   //   }
-  // )
-
-  const salesMaintain = {}
-  let countMaintain = []
-  result.map((item) => {
-    if (item.dataValues.total_pv>= 1000) {
-      countMaintain.push(item.mcode)
-      salesMaintain[item.dataValues.mcode] = item.dataValues.total_pv
-    }
-  })
+  // })
 
   const dataPool = {
-    salesMaintain:salesMaintain,
+    salesMaintain: salesMaintain,
     members: {},
-    dpv: result,
+    dpv: [],
     dc: [],
     dmBonus: [],
   }
@@ -73,6 +63,11 @@ exports.calMatching = async (req, res, next) => {
   const allKeys = Object.keys(result)
   for (let x of allKeys) {
     const item = result[x].dataValues
+    dataPool.dpv.push({
+      rcode : item.rcode,
+      mcode : item.mcode,
+      total_pv: item.total_pv
+    })
     let selectMember = dataPool.members[x]
     if (selectMember === undefined) {
       const memberQuery = await models.ali_member.findOne({
@@ -91,7 +86,6 @@ exports.calMatching = async (req, res, next) => {
       1,
       dataPool,
       1,
-      salesMaintain
     )
   }
 
@@ -104,7 +98,7 @@ exports.calMatching = async (req, res, next) => {
     } else {
       sumBySpCode[upa_code] = {
         total: matching,
-        name_t: dataset.name_t,
+        name_t: dataset.upa_name,
         fdate: dataset.fdate,
         tdate: dataset.tdate,
         pos_cur: dataset.mposi,
@@ -113,25 +107,27 @@ exports.calMatching = async (req, res, next) => {
   })
 
   for (const upa_code in sumBySpCode) {
+    let tax = sumBySpCode[upa_code].total * 0.05
+    let bonus = sumBySpCode[upa_code].total - tax.toFixed(2)
     dataPool.dmBonus.push({
       rcode: ro,
       mcode: upa_code,
       name_t: sumBySpCode[upa_code].name_t,
       total: sumBySpCode[upa_code].total,
-      tax: sumBySpCode[upa_code].total * 0.05,
-      bonus: sumBySpCode[upa_code].total * 0.95,
+      tax: tax.toFixed(2),
+      bonus: bonus,
       fdate: sumBySpCode[upa_code].fdate,
       tdate: sumBySpCode[upa_code].tdate,
-      pos_cur:sumBySpCode[upa_code].pos_cur,
+      pos_cur: sumBySpCode[upa_code].pos_cur,
     })
   }
 
-  await createResult(ro ,dataPool);
+  await createResult(ro, dataPool)
 
   const endTime = moment()
   const duration = endTime.diff(startTime, "seconds")
   console.log("duration >>>>> ", duration)
-
+  // console.log('dataPool.dpv', dataPool.dpv)
   res.status(200).json({
     dataPool: dataPool,
     // result: result,
@@ -154,7 +150,6 @@ const getPartSp = async (
   gen = 1,
   dataPool,
   level = 1,
-  salesMaintain
 ) => {
   if (member.sp_code != "" && level <= 5) {
     const sponsorCode = member.sp_code
@@ -166,12 +161,14 @@ const getPartSp = async (
       dataPool.members[sponsorCode] = memberQuery.dataValues
       selectMember = memberQuery.dataValues
     }
+    const salesMaintain = dataPool.salesMaintain.includes(selectMember.mcode)
+
     const factor = FACTOR[level]
     const total = total_pv * factor
 
     if (
       selectMember.status_terminate != 1 &&
-      salesMaintain[member.sp_code] &&
+      !salesMaintain &&
       selectMember.pos_cur === "VIP"
     ) {
       dataPool.dc.push({
@@ -201,8 +198,7 @@ const getPartSp = async (
       total_pv,
       gen + 1,
       dataPool,
-      level,
-      salesMaintain
+      level
     )
   }
   return

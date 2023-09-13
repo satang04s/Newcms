@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const autoShipController = require('../controller/autoShipController')
+const eAtoShipController = require('../controller/eAtoShipController')
 const stampWalletController = require('../controller/stampWalletController')
 /* GET users listing. */
-router.get('/getAutoShip', autoShipController.autoShip);
+router.get('/getAutoShip', eAtoShipController.eAuto);
 router.get('/stampWallet', stampWalletController.fnc_calc_stamp_wallet);
 
 module.exports = router;
