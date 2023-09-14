@@ -147,7 +147,7 @@ module.exports = function(sequelize, DataTypes) {
     },
     remote_ip: {
       type: DataTypes.STRING(64),
-      allowNull: false
+      
     },
     member_id: {
       type: DataTypes.INTEGER,
